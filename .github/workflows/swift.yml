@@ -1,0 +1,53 @@
+name: Build Unsigned KMP IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      # 1. Build the Kotlin Multiplatform logic (using the composeApp module from your photo)
+      - name: Build Kotlin Logic
+        run: ./gradlew :composeApp:assembleRelease
+
+      # 2. Build the Xcode Archive
+      - name: Create Xcode Archive
+        run: |
+          xcodebuild archive \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -configuration Release \
+            -archivePath build/iosApp.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS=""
+
+      # 3. Manually package the .ipa
+      - name: Package Unsigned IPA
+        run: |
+          mkdir -p Payload
+          cp -r build/iosApp.xcarchive/Products/Applications/*.app Payload/
+          zip -r KMPdemo-unsigned.ipa Payload
+          mkdir -p output
+          mv KMPdemo-unsigned.ipa output/
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KMPdemo-Unsigned-Package
+          path: output/KMPdemo-unsigned.ipa
