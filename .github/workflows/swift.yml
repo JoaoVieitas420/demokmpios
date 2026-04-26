@@ -20,6 +20,9 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
       # 1. Build the Kotlin Multiplatform logic (using the composeApp module from your photo)
       - name: Build Kotlin Logic
         run: ./gradlew :composeApp:assembleRelease
